@@ -1,0 +1,23 @@
+server {
+    listen       80;
+    server_name  localhost;
+
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+    client_max_body_size 10G;
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    location / {
+        proxy_pass http://kibana:5601;
+        proxy_redirect off;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        auth_basic "Admin Area ELK-Stack";
+        auth_basic_user_file /etc/apk/.htpasswd;
+    }
+}

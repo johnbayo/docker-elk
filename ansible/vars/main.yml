@@ -1,0 +1,35 @@
+kibana_password: Start123
+elk_version: 7.3.0
+elk_env: dev
+elk_user: linux
+deployment_path: /home/{{ elk_user }}/elk-stack-{{ elk_env }}
+mount_path: /home/linux/elk-compose
+
+stackcomponents:
+  - { name: 'docker-compose.yml', path: '{{ deployment_path }}' }                                     #docker-compose file
+  - { name: 'auth.conf', path: '{{ deployment_path }}/nginx' }                                        #nginx reverse proxy config
+  - { name: 'Dockerfile-nginx', path: '{{ deployment_path }}/nginx' }                                 #docker-file nginx
+  - { name: 'Dockerfile-elasticsearch', path: '{{ deployment_path }}/elasticsearch' }                 #docker-file elasticsearch
+  - { name: 'elasticsearch.yml', path: '{{ mount_path }}/elasticsearch/config' }                      #elasticsearch config
+  - { name: 'Dockerfile-logstash', path: '{{ deployment_path }}/logstash' }                           #docker-file logstash
+  - { name: 'logstash.yml', path: '{{ mount_path }}/logstash/config' }                                #logstash config
+  - { name: 'logstash.conf', path: '{{ mount_path }}/logstash/pipeline' }                             #logstash pipeline config
+  - { name: 'Dockerfile-kibana', path: '{{ deployment_path }}/kibana' }                               #docker-file logstash
+  - { name: 'kibana.yml', path: '{{ mount_path }}/kibana/config' }                                    #kibana config
+  - { name: 'Dockerfile-apm-server', path: '{{ deployment_path }}/extensions/apm-server' }            #docker-file apm-server
+  - { name: 'apm-server.yml', path: '{{ mount_path }}/extensions/apm-server/config' }                 #apm-server config
+  - { name: 'Dockerfile-curator', path: '{{ deployment_path }}/extensions/curator' }                  #docker-file curator
+  - { name: 'curator-entrypoint.sh', path: '{{ deployment_path }}/extensions/curator' }               #curator entrypoint
+  - { name: 'curator.yml', path: '{{ mount_path }}/extensions/curator/config' }                       #curator config
+  - { name: 'delete_log_files_curator.yml', path: '{{ mount_path }}/extensions/curator/config' }      #curator delete config
+  - { name: 'Dockerfile-logspout', path: '{{ deployment_path }}/extensions/logspout' }                #docker-file logspout
+  - { name: 'build.sh', path: '{{ deployment_path }}/extensions/logspout' }                           #logspout build.sh
+  - { name: 'modules.go', path: '{{ deployment_path }}/extensions/logspout' }                         #logspout modules.go
+
+elastic_max_mem: 512m
+elastic_min_mem: 256m
+logstash_max_mem: 512m
+logstash_min_mem: 256m
+
+curator_cron_time_stamp: "0 0 * * *"
+curator_unit_count: 2

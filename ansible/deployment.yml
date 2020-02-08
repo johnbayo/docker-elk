@@ -1,0 +1,23 @@
+---
+- hosts: all 
+  vars_files:
+    - "vars/main.yml"
+  roles: 
+    - docker
+  tasks:
+    - name: create elk-stack-{{ elk_env }} directory
+      file:
+        path: "{{ item.path }}" 
+        state: directory  
+      with_items: "{{ stackcomponents }}" 
+
+    - name: Copying template files to designated directories 
+      template: src=templates/{{ item.name }}.j2 dest={{ item.path }}/{{ item.name }}
+      with_items: "{{ stackcomponents }}" 
+      notify: restart docker
+
+    - name: stopping the elk-stack  
+      shell: "/usr/local/bin/docker-compose -f /home/{{ elk_user }}/elk-stack-{{ elk_env }}/docker-compose.yml down" 
+
+    - name: running the elk stack 
+      shell: "START_UID=$(id -u {{ elk_user }}):$(id -g {{ elk_user }}) /usr/local/bin/docker-compose -f /home/{{ elk_user }}/elk-stack-{{ elk_env }}/docker-compose.yml up --build -d"

@@ -1,0 +1,8 @@
+FROM nginx:alpine
+
+RUN apk update\
+    && apk add --no-cache apache2-utils 
+
+RUN htpasswd -b -c /etc/apk/.htpasswd admin {{ kibana_password }}
+
+COPY auth.conf /etc/nginx/conf.d/auth.conf

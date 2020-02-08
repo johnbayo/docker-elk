@@ -1,0 +1,127 @@
+version: '3.3'
+
+services:
+
+  nginx:
+    container_name: elk-stack-{{ elk_env }}-nginx
+    build:
+      context: nginx/
+      dockerfile: Dockerfile-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - elk
+
+  elasticsearch:
+    container_name: elk-stack-{{ elk_env }}-elasticsearch
+    build:
+      context: elasticsearch/
+      dockerfile: Dockerfile-elasticsearch
+    user: ${START_UID} 
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - {{ mount_path }}/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    environment:
+      ES_JAVA_OPTS: "-Xmx{{ elastic_max_mem }} -Xms{{ elastic_min_mem }}"
+    networks:
+      - elk
+
+  logstash:
+    container_name: elk-stack-{{ elk_env }}-logstash
+    build:
+      context: logstash/
+      dockerfile: Dockerfile-logstash
+    user: ${START_UID} 
+    restart: unless-stopped
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    volumes:
+      - {{ mount_path }}/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - {{ mount_path }}/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx{{ logstash_max_mem }} -Xms{{ logstash_min_mem }}"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    container_name: elk-stack-{{ elk_env }}-kibana
+    build:
+      context: kibana/
+      dockerfile: Dockerfile-kibana
+    user: ${START_UID} 
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    volumes:
+      - {{ mount_path }}/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+      - nginx
+
+###################################
+# extensions
+##################################
+#  apm-server:
+#    container_name: elk-stack-{{ elk_env }}-apm-server
+#    build:
+#      context: extensions/apm-server/
+#      dockerfile: Dockerfile-apm-server
+#    user: ${START_UID}
+#    restart: unless-stopped
+#    ports:
+#      - "8200:8200"
+#    volumes:
+#      - {{ mount_path }}/extensions/apm-server/config/apm-server.yml:/usr/share/apm-server/config/apm-server.yml:ro
+#    networks:
+#      - elk
+#    depends_on:
+#      - elasticsearch
+
+  curator:
+    container_name: elk-stack-{{ elk_env }}-curator
+    build:
+      context: extensions/curator/
+      dockerfile: Dockerfile-curator
+    restart: unless-stopped
+    environment:
+      ELASTICSEARCH_HOST: elasticsearch
+      CRON: {{ curator_cron_time_stamp }}
+      CONFIG_FILE: {{ mount_path }}/extensions/curator/config/curator.yml
+      COMMAND: {{ mount_path }}/extensions/curator/config/delete_log_files_curator.yml
+      UNIT_COUNT: {{ curator_unit_count }}
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+#  logspout:
+#    container_name: elk-stack-{{ elk_env }}-logspout
+#    build:
+#      context: extensions/logspout/
+#      dockerfile: Dockerfile-logspout
+#    restart: on-failure
+#    environment:
+#      ROUTE_URIS: tcp://logstash:5000
+#      LOGSTASH_TAGS: docker-elk
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock:ro
+#    networks:
+#      - elk
+#    depends_on:
+#      - logstash
+#      - elasticsearch
+#      - kibana
+
+networks:
+  elk:
+    driver: bridge
